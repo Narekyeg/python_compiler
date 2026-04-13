@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Python Compiler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+        }
+
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .cell {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .cell-markdown {
+            border-left: 4px solid #9b59b6;
+        }
+
+        .cell-code {
+            border-left: 4px solid #3498db;
+        }
+
+        .cell-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .cell-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .cell-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cell-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .markdown-content {
+            padding: 20px;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            margin: 16px 0 8px 0;
+            font-weight: 600;
+        }
+
+        .markdown-content h1 { font-size: 24px; }
+        .markdown-content h2 { font-size: 20px; }
+        .markdown-content h3 { font-size: 18px; }
+
+        .markdown-content p {
+            margin-bottom: 12px;
+        }
+
+        .code-editor {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            background: white;
+            color: #2c3e50;
+            line-height: 1.5;
+        }
+
+        .code-editor:focus {
+            outline: none;
+            background: #fafafa;
+        }
+
+        .output-wrapper {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            min-height: 50px;
+            max-height: 600px;
+            overflow-y: auto;
+            border-top: 1px solid #e0e0e0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .output-empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        .output-error {
+            color: #f48771;
+        }
+
+        .output-success {
+            color: #6a9955;
+        }
+
+        .loading {
+            color: #3498db;
+            font-style: italic;
+        }
+
+        .status-bar {
+            padding: 10px 16px;
+            background: #ecf0f1;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #555;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐍 Python Compiler</h1>
+            <p>Offline Python execution environment with markdown support</p>
+        </div>
+
+        <div class="toolbar">
+            <button class="btn btn-primary" id="btn-markdown">+ Markdown</button>
+            <button class="btn btn-primary" id="btn-code">+ Code</button>
+            <button class="btn btn-secondary" id="btn-run-all">Run All</button>
+            <button class="btn btn-secondary" id="btn-clear">Clear Output</button>
+            <button class="btn btn-danger" id="btn-reset">Reset All</button>
+        </div>
+
+        <div id="cells"></div>
+
+        <div class="status-bar">
+            <span id="status">⏳ Loading Python...</span>
+        </div>
+    </div>
+
+    <script async src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <script>
+        // Global state
+        let pyodide = null;
+        let pyodideReady = false;
+        let cellCount = 0;
+        const cellList = [];
+
+        // Initialize Pyodide
+        async function initPyodide() {
+            try {
+                if (typeof globalThis.loadPyodide === 'undefined') {
+                    setTimeout(initPyodide, 100);
+                    return;
+                }
+                
+                updateStatus('⏳ Loading Python environment...');
+                pyodide = await globalThis.loadPyodide({
+                    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.23.4/full/'
+                });
+                
+                updateStatus('⏳ Installing packages...');
+                await pyodide.loadPackage(['numpy', 'matplotlib']);
+                
+                pyodideReady = true;
+                updateStatus('✓ Ready. Python 3.12 with numpy & matplotlib');
+                setupEventListeners();
+            } catch (error) {
+                updateStatus('✗ Error: ' + error.message);
+                setTimeout(initPyodide, 2000);
+            }
+        }
+
+        function updateStatus(message) {
+            const status = document.getElementById('status');
+            if (status) {
+                status.textContent = message;
+            }
+        }
+
+        function setupEventListeners() {
+            const btnMarkdown = document.getElementById('btn-markdown');
+            const btnCode = document.getElementById('btn-code');
+            const btnRunAll = document.getElementById('btn-run-all');
+            const btnClear = document.getElementById('btn-clear');
+            const btnReset = document.getElementById('btn-reset');
+
+            if (btnMarkdown) btnMarkdown.addEventListener('click', addMarkdownCell);
+            if (btnCode) btnCode.addEventListener('click', addCodeCell);
+            if (btnRunAll) btnRunAll.addEventListener('click', runAll);
+            if (btnClear) btnClear.addEventListener('click', clearAll);
+            if (btnReset) btnReset.addEventListener('click', resetAll);
+        }
+
+        function addMarkdownCell() {
+            cellCount++;
+            const cellId = 'cell-' + cellCount;
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'cell cell-markdown';
+            cellDiv.id = cellId;
+            
+            cellDiv.innerHTML = `
+                <div class="cell-header">
+                    <span>📝 Markdown</span>
+                    <div class="cell-controls">
+                        <button class="cell-btn">Preview</button>
+                        <button class="cell-btn">Delete</button>
+                    </div>
+                </div>
+                <textarea class="code-editor" id="input-${cellId}" placeholder="Enter markdown...
+
+# Heading
+Write **bold** and *italic* text."></textarea>
+                <div class="markdown-content" id="preview-${cellId}" style="display:none;"></div>
+            `;
+            
+            document.getElementById('cells').appendChild(cellDiv);
+            cellList.push({ id: cellId, type: 'markdown' });
+
+            // Attach event listeners
+            const btns = cellDiv.querySelectorAll('.cell-btn');
+            btns[0].addEventListener('click', () => updateMarkdown(cellId));
+            btns[1].addEventListener('click', () => deleteCell(cellId));
+        }
+
+        function addCodeCell() {
+            cellCount++;
+            const cellId = 'cell-' + cellCount;
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'cell cell-code';
+            cellDiv.id = cellId;
+            
+            cellDiv.innerHTML = `
+                <div class="cell-header">
+                    <span>💻 Code</span>
+                    <div class="cell-controls">
+                        <button class="cell-btn">Run</button>
+                        <button class="cell-btn">Delete</button>
+                    </div>
+                </div>
+                <textarea class="code-editor" id="input-${cellId}" placeholder="Enter Python code...
+
+import numpy as np
+print('Hello from Python!')"></textarea>
+                <div class="output-wrapper" id="output-${cellId}">
+                    <span class="output-empty">Output will appear here</span>
+                </div>
+            `;
+            
+            document.getElementById('cells').appendChild(cellDiv);
+            cellList.push({ id: cellId, type: 'code' });
+
+            // Attach event listeners
+            const btns = cellDiv.querySelectorAll('.cell-btn');
+            btns[0].addEventListener('click', () => runCell(cellId));
+            btns[1].addEventListener('click', () => deleteCell(cellId));
+        }
+
+        function updateMarkdown(cellId) {
+            const input = document.getElementById('input-' + cellId);
+            const preview = document.getElementById('preview-' + cellId);
+            const textarea = document.getElementById('input-' + cellId);
+            
+            if (preview.style.display === 'none') {
+                // Convert basic markdown to HTML
+                let html = input.value;
+                html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+                html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+                html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                html = html.replace(/^- (.*?)$/gm, '<li>$1</li>');
+                html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+                
+                preview.innerHTML = html;
+                preview.style.display = 'block';
+                textarea.style.display = 'none';
+            } else {
+                preview.style.display = 'none';
+                textarea.style.display = 'block';
+            }
+        }
+
+        async function runCell(cellId) {
+            if (!pyodideReady) {
+                const output = document.getElementById('output-' + cellId);
+                output.innerHTML = '<span class="output-error">⏳ Python is still loading... Please wait</span>';
+                return;
+            }
+
+            const code = document.getElementById('input-' + cellId).value;
+            const output = document.getElementById('output-' + cellId);
+            
+            output.innerHTML = '<span class="loading">⚙ Running...</span>';
+            
+            try {
+                // Setup output capture and matplotlib
+                await pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+_stdout_backup = sys.stdout
+_stderr_backup = sys.stderr
+_output_buffer = StringIO()
+sys.stdout = _output_buffer
+sys.stderr = _output_buffer
+`);
+                
+                // Run user code
+                await pyodide.runPythonAsync(code);
+                
+                // Check if matplotlib figure exists and convert to image
+                const figureCode = `
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
+
+figs = plt.get_fignums()
+output_data = ""
+
+if figs:
+    for fig_num in figs:
+        fig = plt.figure(fig_num)
+        buf = BytesIO()
+        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        output_data += f"<img src='data:image/png;base64,{img_base64}' style='max-width:100%; margin:10px 0;'/>"
+        plt.close(fig)
+
+output_data
+`;
+                
+                const figureHtml = await pyodide.runPythonAsync(figureCode);
+                
+                // Get text output
+                const outputText = await pyodide.runPythonAsync(`_output_buffer.getvalue()`);
+                
+                // Restore stdout
+                await pyodide.runPythonAsync(`
+sys.stdout = _stdout_backup
+sys.stderr = _stderr_backup
+`);
+                
+                let resultHtml = '';
+                
+                if (figureHtml && figureHtml.trim()) {
+                    resultHtml += figureHtml;
+                }
+                
+                if (outputText && outputText.trim()) {
+                    resultHtml += `<span class="output-success">${escapeHtml(outputText)}</span>`;
+                }
+                
+                if (!resultHtml) {
+                    resultHtml = '<span class="output-success">✓ Code executed (no output)</span>';
+                }
+                
+                output.innerHTML = resultHtml;
+            } catch (error) {
+                output.innerHTML = `<span class="output-error">✗ Error:\n${escapeHtml(error.toString())}</span>`;
+            }
+        }
+
+        async function runAll() {
+            if (!pyodideReady) {
+                alert('Python is still loading...');
+                return;
+            }
+            const codeCells = cellList.filter(c => c.type === 'code');
+            for (const cell of codeCells) {
+                await runCell(cell.id);
+                await new Promise(r => setTimeout(r, 100));
+            }
+            updateStatus('✓ All cells executed');
+        }
+
+        function deleteCell(cellId) {
+            const cell = document.getElementById(cellId);
+            if (cell) cell.remove();
+            const idx = cellList.findIndex(c => c.id === cellId);
+            if (idx > -1) cellList.splice(idx, 1);
+        }
+
+        function clearAll() {
+            cellList.forEach(cell => {
+                if (cell.type === 'code') {
+                    const output = document.getElementById('output-' + cell.id);
+                    if (output) {
+                        output.innerHTML = '<span class="output-empty">Output will appear here</span>';
+                    }
+                }
+            });
+            updateStatus('✓ Output cleared');
+        }
+
+        function resetAll() {
+            if (confirm('Delete all cells?')) {
+                document.getElementById('cells').innerHTML = '';
+                cellList.length = 0;
+                cellCount = 0;
+                updateStatus('✓ Reset');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Start initialization
+        window.addEventListener('load', initPyodide);
+    </script>
+</body>
+</html>
